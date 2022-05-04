@@ -11,8 +11,7 @@ import (
 )
 
 // JSON converts a Go value to JSON and sends it to the client.
-// Under the hood, JSON uses logger.Get() to load a zap logger from context,
-// so the logging middleware must run.
+// Under the hood, JSON uses logger.Get() to load a zap logger from the provided context.
 func JSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCode int) {
 	// If there is nothing to marshal then set status code and return.
 	if statusCode == http.StatusNoContent {
@@ -41,13 +40,15 @@ func JSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCo
 	}
 }
 
-// Error sends an error reponse back to the client and logs the error internally
-// if the error is of type io.Error we send it's message back to the client.
+// Error sends an error reponse back to the client and logs the error internally.
+// If the error is of type apio.Error we will send the error message back to the client.
 // Otherwise, we return a HTTP 500 code with an opaque response to avoid leaking any
 // information from the server.
 //
-// Under the hood, Error uses logger.Get() to load a zap logger from context,
-// so the logging middleware must run.
+// Under the hood, Error uses logger.Get() to load a zap logger from the provided context.
+//
+// The response body is in the format:
+// 	{"error": "msg"}
 func Error(ctx context.Context, w http.ResponseWriter, err error) {
 	// load the zap logger from context.
 	log := logger.Get(ctx)
@@ -70,4 +71,14 @@ func Error(ctx context.Context, w http.ResponseWriter, err error) {
 		Error: http.StatusText(http.StatusInternalServerError),
 	}
 	JSON(ctx, w, er, http.StatusInternalServerError)
+}
+
+// ErrorString sends an error response designated status code and error message.
+// The response body is in the format:
+// 	{"error": "msg"}
+//
+// It's a convenience wrapper over apio.Error().
+func ErrorString(ctx context.Context, w http.ResponseWriter, msg string, code int) {
+	err := NewRequestError(errors.New(msg), code)
+	Error(ctx, w, err)
 }
