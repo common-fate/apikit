@@ -41,28 +41,30 @@ func Middleware(l *zap.Logger) func(next http.Handler) http.Handler {
 
 			r = r.WithContext(ctx)
 
+			defer func() {
+				fields := []zapcore.Field{
+					zap.String("proto", r.Proto),
+					zap.String("remote", r.RemoteAddr),
+					zap.String("request", r.RequestURI),
+					zap.String("method", r.Method),
+					zap.Duration("took", time.Since(t1)),
+					zap.Int("status", ww.Status()),
+					zap.Int("size", ww.BytesWritten()),
+					zap.String("reqId", reqID),
+				}
+
+				// get the user ID from the request context.
+				// Authentication middleware may run *after* our logging
+				// middleware, so we call it after next.ServeHTTP is complete.
+				uid := userid.Get(ctx)
+				if uid != "" {
+					fields = append(fields, zap.String("userId", uid))
+				}
+
+				l.Info("Served", fields...)
+			}()
+
 			next.ServeHTTP(ww, r)
-
-			fields := []zapcore.Field{
-				zap.String("proto", r.Proto),
-				zap.String("remote", r.RemoteAddr),
-				zap.String("request", r.RequestURI),
-				zap.String("method", r.Method),
-				zap.Duration("took", time.Since(t1)),
-				zap.Int("status", ww.Status()),
-				zap.Int("size", ww.BytesWritten()),
-				zap.String("reqId", reqID),
-			}
-
-			// get the user ID from the request context.
-			// Authentication middleware may run *after* our logging
-			// middleware, so we call it after next.ServeHTTP is complete.
-			uid := userid.Get(ctx)
-			if uid != "" {
-				fields = append(fields, zap.String("userId", uid))
-			}
-
-			l.Info("Served", fields...)
 		}
 		return http.HandlerFunc(fn)
 	}
