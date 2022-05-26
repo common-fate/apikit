@@ -56,9 +56,8 @@ func Middleware(l *zap.Logger) func(next http.Handler) http.Handler {
 
 			// get the user ID from the request context.
 			// Authentication middleware may run *after* our logging
-			// middleware, so we retrieve a fresh copy of the request context
-			// in case it has changed.
-			uid := userid.Get(r.Context())
+			// middleware, so we call it after next.ServeHTTP is complete.
+			uid := userid.Get(ctx)
 			if uid != "" {
 				fields = append(fields, zap.String("userId", uid))
 			}
