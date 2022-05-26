@@ -42,5 +42,4 @@ func TestErrorString(t *testing.T) {
 			assert.Equal(t, tc.want, string(data))
 		})
 	}
-
 }

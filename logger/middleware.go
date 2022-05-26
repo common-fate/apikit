@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/common-fate/apikit/userid"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var logCtxKey = &contextKey{"log"}
@@ -31,10 +33,15 @@ func Middleware(l *zap.Logger) func(next http.Handler) http.Handler {
 			// add the logger to context, so that logger.Get() can be used to retrieve it in
 			// API endpoints.
 			ctx = context.WithValue(ctx, logCtxKey, l.With(zap.String("reqId", reqID)).Sugar())
+
+			// init the user ID on the context.
+			// children middleware further down the stack can write the user ID to it.
+			ctx = userid.Init(ctx)
+
 			r = r.WithContext(ctx)
 
 			defer func() {
-				l.Info("Served",
+				fields := []zapcore.Field{
 					zap.String("proto", r.Proto),
 					zap.String("remote", r.RemoteAddr),
 					zap.String("request", r.RequestURI),
@@ -42,7 +49,18 @@ func Middleware(l *zap.Logger) func(next http.Handler) http.Handler {
 					zap.Duration("took", time.Since(t1)),
 					zap.Int("status", ww.Status()),
 					zap.Int("size", ww.BytesWritten()),
-					zap.String("reqId", reqID))
+					zap.String("reqId", reqID),
+				}
+
+				// get the user ID from the request context.
+				// Authentication middleware may run *after* our logging
+				// middleware, so we call it after next.ServeHTTP is complete.
+				uid := userid.Get(ctx)
+				if uid != "" {
+					fields = append(fields, zap.String("userId", uid))
+				}
+
+				l.Info("Served", fields...)
 			}()
 
 			next.ServeHTTP(ww, r)
