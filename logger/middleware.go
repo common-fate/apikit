@@ -32,8 +32,7 @@ func Middleware(l *zap.Logger) func(next http.Handler) http.Handler {
 
 			// add the logger to context, so that logger.Get() can be used to retrieve it in
 			// API endpoints.
-			logger := l.With(zap.String("reqId", reqID)).Sugar()
-			ctx = context.WithValue(ctx, logCtxKey, logger)
+			ctx = context.WithValue(ctx, logCtxKey, l.With(zap.String("reqId", reqID)).Sugar())
 
 			// init the user ID on the context.
 			// children middleware further down the stack can write the user ID to it.
@@ -78,9 +77,4 @@ func Get(ctx context.Context) *zap.SugaredLogger {
 	}
 
 	return zap.S()
-}
-
-// Set the logger in context.
-func Set(ctx context.Context, l *zap.SugaredLogger) context.Context {
-	return context.WithValue(ctx, logCtxKey, l)
 }
