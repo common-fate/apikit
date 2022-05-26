@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,17 +15,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 )
-
-// NewTestingLogger is a logger for testing where we can pipe the
-// output to a bytes.Buffer variable to inspect them
-func NewTestingLogger(pipeTo io.Writer) *zap.Logger {
-	c := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-		zap.CombineWriteSyncers(os.Stderr, zapcore.AddSync(pipeTo)),
-		zapcore.InfoLevel,
-	)
-	return zap.New(c)
-}
 
 func TestMiddlewareUserID(t *testing.T) {
 	// source: https://stackoverflow.com/questions/70400426/how-to-properly-capture-zap-logger-output-in-unit-tests
