@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/common-fate/apikit/errhandler"
 	"github.com/common-fate/apikit/logger"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -49,9 +50,17 @@ func JSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCo
 //
 // The response body is in the format:
 // 	{"error": "msg"}
+//
+// If errhandler.Handler is set in the context, it will always be called with the error.
+// You can check the error type in your error handler to determine the status code of the error.
 func Error(ctx context.Context, w http.ResponseWriter, err error) {
 	// load the zap logger from context.
 	log := logger.Get(ctx)
+
+	// dispatch an error if we have an error handler we can send it to.
+	if h := errhandler.Get(ctx); h != nil {
+		h.HandleError(err)
+	}
 
 	log.Errorw("web handler error", zap.Error(err))
 
