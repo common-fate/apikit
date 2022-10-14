@@ -49,7 +49,8 @@ func JSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCo
 // Under the hood, Error uses logger.Get() to load a zap logger from the provided context.
 //
 // The response body is in the format:
-// 	{"error": "msg"}
+//
+//	{"error": "msg"}
 //
 // If errhandler.Handler is set in the context, it will always be called with the error.
 // You can check the error type in your error handler to determine the status code of the error.
@@ -63,6 +64,12 @@ func Error(ctx context.Context, w http.ResponseWriter, err error) {
 	}
 
 	log.Errorw("web handler error", zap.Error(err))
+
+	// If the error implements RenderableError, it can render a custom response.
+	if re, ok := err.(RenderableError); ok {
+		re.RenderHTTP(ctx, w)
+		return
+	}
 
 	// If the error was of the type *Error, the handler has
 	// a specific status code and error to return.
@@ -84,7 +91,8 @@ func Error(ctx context.Context, w http.ResponseWriter, err error) {
 
 // ErrorString sends an error response designated status code and error message.
 // The response body is in the format:
-// 	{"error": "msg"}
+//
+//	{"error": "msg"}
 //
 // It's a convenience wrapper over apio.Error().
 func ErrorString(ctx context.Context, w http.ResponseWriter, msg string, code int) {

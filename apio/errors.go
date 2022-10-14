@@ -1,5 +1,10 @@
 package apio
 
+import (
+	"context"
+	"net/http"
+)
+
 // FieldError is used to indicate an error with a specific request field.
 type FieldError struct {
 	Field string `json:"field"`
@@ -30,4 +35,10 @@ func NewRequestError(err error, status int) error {
 // wrapped error. This is what will be shown in the services' logs.
 func (e *APIError) Error() string {
 	return e.Err.Error()
+}
+
+// RenderableErrors can render their own HTTP responses.
+// They can be used to override the behaviour of apio.Error().
+type RenderableError interface {
+	RenderHTTP(ctx context.Context, w http.ResponseWriter)
 }
