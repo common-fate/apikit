@@ -7,6 +7,7 @@ import (
 
 	"github.com/common-fate/apikit/errhandler"
 	"github.com/common-fate/apikit/logger"
+	"github.com/common-fate/apikit/serr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -49,7 +50,8 @@ func JSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCo
 // Under the hood, Error uses logger.Get() to load a zap logger from the provided context.
 //
 // The response body is in the format:
-// 	{"error": "msg"}
+//
+//	{"error": "msg"}
 //
 // If errhandler.Handler is set in the context, it will always be called with the error.
 // You can check the error type in your error handler to determine the status code of the error.
@@ -75,6 +77,46 @@ func Error(ctx context.Context, w http.ResponseWriter, err error) {
 		return
 	}
 
+	// If the error was of the type *Error, the handler has
+	// a specific status code and error to return.
+	if serr.IsBadRequest(err) {
+		er := ErrorResponse{
+			Error: err.Error(),
+		}
+		JSON(ctx, w, er, http.StatusBadRequest)
+		return
+	}
+
+	// If the error was of the type *Error, the handler has
+	// a specific status code and error to return.
+	if serr.IsForbidden(err) {
+		er := ErrorResponse{
+			Error: err.Error(),
+		}
+		JSON(ctx, w, er, http.StatusForbidden)
+		return
+	}
+
+	// If the error was of the type *Error, the handler has
+	// a specific status code and error to return.
+	if serr.IsNotFound(err) {
+		er := ErrorResponse{
+			Error: err.Error(),
+		}
+		JSON(ctx, w, er, http.StatusNotFound)
+		return
+	}
+
+	// If the error was of the type *Error, the handler has
+	// a specific status code and error to return.
+	if serr.IsUnauthorised(err) {
+		er := ErrorResponse{
+			Error: err.Error(),
+		}
+		JSON(ctx, w, er, http.StatusUnauthorized)
+		return
+	}
+
 	// If not, the handler sent any arbitrary error value so use 500.
 	er := ErrorResponse{
 		Error: http.StatusText(http.StatusInternalServerError),
@@ -84,7 +126,8 @@ func Error(ctx context.Context, w http.ResponseWriter, err error) {
 
 // ErrorString sends an error response designated status code and error message.
 // The response body is in the format:
-// 	{"error": "msg"}
+//
+//	{"error": "msg"}
 //
 // It's a convenience wrapper over apio.Error().
 func ErrorString(ctx context.Context, w http.ResponseWriter, msg string, code int) {
