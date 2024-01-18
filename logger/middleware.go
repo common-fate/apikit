@@ -78,3 +78,8 @@ func Get(ctx context.Context) *zap.SugaredLogger {
 
 	return zap.S()
 }
+
+// Set the logger in the context.
+func Set(ctx context.Context, logger *zap.SugaredLogger) context.Context {
+	return context.WithValue(ctx, logCtxKey, logger)
+}
